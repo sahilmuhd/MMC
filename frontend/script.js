@@ -160,35 +160,51 @@
   const timelineScroll = document.getElementById("timelineScroll");
 
   if (recognitionCards) {
-    recognitionCards.innerHTML = RECOGNITION_DATA.map((r, i) => `
-      <div class="rank-card" data-rank="${r.rank}" data-reveal data-delay="${Math.min(i % 4, 3)}">
-        <div class="rank-card-inner">
-          <span class="rank-number">${String(r.rank).padStart(2, "0")} / 15</span>
-          <div class="rank-glyph">${r.icon}</div>
-          <h3 class="rank-title">${r.title}</h3>
-          <p class="rank-desc">${r.desc}</p>
-          <span class="rank-toggle">Qualification Rules
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9 L12 15 L18 9" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </span>
-          <div class="rank-rules-panel">
-            <ul class="rank-rules-list">${r.rules.map((rule) => `<li>${rule}</li>`).join("")}</ul>
+    recognitionCards.innerHTML = RECOGNITION_DATA.map((r, i) => {
+      let tierClass = "rank-card--starter";
+      if (r.rank >= 5 && r.rank <= 8) tierClass = "rank-card--premium";
+      if (r.rank >= 9) tierClass = "rank-card--elite";
+
+      return `
+        <div class="rank-card ${tierClass}" data-rank="${r.rank}" data-reveal data-delay="${Math.min(i % 4, 3)}">
+          <div class="rank-card-inner">
+            <div class="rank-card-top">
+              <div class="rank-glyph">${r.icon}</div>
+              <span class="rank-number">${String(r.rank).padStart(2, "0")} / 15</span>
+            </div>
+            <h3 class="rank-title">${r.title}</h3>
+            <p class="rank-desc">${r.desc}</p>
+            <span class="rank-toggle">Qualification Rules
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9 L12 15 L18 9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <div class="rank-rules-panel">
+              <ul class="rank-rules-list">${r.rules.map((rule) => `<li>${rule}</li>`).join("")}</ul>
+            </div>
           </div>
         </div>
-      </div>
-    `).join("");
+      `;
+    }).join("");
   }
 
   if (timelineScroll) {
-    timelineScroll.innerHTML = RECOGNITION_DATA.map((r, i) => `
-      ${i > 0 ? '<div class="timeline-line"></div>' : ""}
-      <div class="timeline-node">
-        <div class="timeline-dot" data-rank="${r.rank}" title="${r.title}">
-          <span>${r.icon}</span>
-          <span class="tl-label">${r.title}</span>
+    timelineScroll.innerHTML = RECOGNITION_DATA.map((r, i) => {
+      let tierClass = "timeline-dot--starter";
+      if (r.rank >= 5 && r.rank <= 8) tierClass = "timeline-dot--premium";
+      if (r.rank >= 9) tierClass = "timeline-dot--elite";
+
+      return `
+        ${i > 0 ? '<div class="timeline-line"></div>' : ""}
+        <div class="timeline-node">
+          <div class="timeline-dot ${tierClass}" data-rank="${r.rank}" title="${r.title}">
+            <span>${r.icon}</span>
+            <span class="tl-label">${r.title}</span>
+          </div>
         </div>
-      </div>
-    `).join("");
+      `;
+    }).join("");
   }
+
+  setActiveRank(1);
 
   /* ---------- Sync: clicking a rank card or timeline dot glows both ---------- */
   function setActiveRank(rank) {
