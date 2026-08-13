@@ -978,6 +978,43 @@ a { text-decoration: none; color: inherit; }
 }
 .admin-denied a { color: var(--maroon); font-weight: 600; }
 
+.admin-panel-sub { color: var(--text-dim); font-size: 0.88rem; margin: -6px 0 16px; }
+
+.admin-status-badge {
+  display: inline-block; padding: 3px 10px; border-radius: 999px;
+  font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
+}
+.admin-status-badge.submitted { background: rgba(30,30,30,.06); color: var(--text-dim); }
+.admin-status-badge.approved { background: rgba(46,125,50,.14); color: #2e7d32; }
+.admin-status-badge.rejected { background: rgba(178,34,34,.12); color: #b22222; }
+.admin-status-badge.pending { background: rgba(30,30,30,.06); color: var(--text-dim); }
+.admin-status-badge.paid { background: rgba(46,125,50,.14); color: #2e7d32; }
+
+.admin-row-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.admin-btn {
+  border: none; border-radius: 999px; padding: 5px 14px; font-size: 0.78rem;
+  font-weight: 600; cursor: pointer; transition: opacity .15s ease;
+}
+.admin-btn:hover { opacity: .85; }
+.admin-btn:disabled { opacity: .4; cursor: not-allowed; }
+.admin-btn-approve { background: rgba(46,125,50,.14); color: #2e7d32; }
+.admin-btn-reject { background: rgba(178,34,34,.12); color: #b22222; }
+.admin-status-select {
+  border: 1px solid rgba(30,30,30,.15); border-radius: 6px; padding: 4px 8px;
+  font-size: 0.82rem; font-family: inherit; background: #fff;
+}
+.admin-perm-picker { margin-bottom: 14px; }
+.admin-perm-picker select {
+  border: 1px solid rgba(30,30,30,.15); border-radius: 6px; padding: 8px 12px;
+  font-size: 0.88rem; font-family: inherit; background: #fff; min-width: 260px;
+}
+.admin-perm-toggle {
+  border: none; border-radius: 999px; padding: 5px 16px; font-size: 0.78rem;
+  font-weight: 600; cursor: pointer; min-width: 84px;
+}
+.admin-perm-toggle.granted { background: rgba(46,125,50,.14); color: #2e7d32; }
+.admin-perm-toggle.revoked { background: rgba(30,30,30,.06); color: var(--text-dim); }
+
 /* ---------- Footer ---------- */
 .footer {
   background: var(--charcoal-deep);

@@ -60,7 +60,7 @@ body[data-page="admin"] .nav {
   <div class="admin-header">
     <div>
       <h1>Admin Dashboard</h1>
-      <p>Contact submissions, newsletter subscribers, and registered users.</p>
+      <p>Contact submissions, newsletter subscribers, registered users, pending achievements, and income.</p>
     </div>
   </div>
 
@@ -79,6 +79,25 @@ body[data-page="admin"] .nav {
   <div class="admin-panel">
     <h2>Registered users</h2>
     <div class="admin-table-wrap" id="usersTableWrap"></div>
+  </div>
+
+  <div class="admin-panel">
+    <h2>Pending achievements</h2>
+    <div class="admin-table-wrap" id="achievementsTableWrap"></div>
+  </div>
+
+  <div class="admin-panel">
+    <h2>Income records</h2>
+    <div class="admin-table-wrap" id="incomeTableWrap"></div>
+  </div>
+
+  <div class="admin-panel" id="permissionsPanel" style="display:none;">
+    <h2>Permissions</h2>
+    <p class="admin-panel-sub">Grant or revoke what an admin can do. Only visible to super admins.</p>
+    <div class="admin-perm-picker">
+      <select id="permMemberSelect"></select>
+    </div>
+    <div class="admin-table-wrap" id="permissionsTableWrap"></div>
   </div>
 </div>
 
