@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contact — MMC</title>
+<meta name="description" content="Meet the MMC leadership team, read client testimonials, browse FAQs, and get in touch — send an inquiry and our team will respond promptly.">
+<link rel="canonical" href="https://mmc-group.com/contact.html">
+<meta name="robots" content="index, follow">
+
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Contact — MMC">
+<meta property="og:description" content="Meet the MMC leadership team, read client testimonials, browse FAQs, and get in touch — send an inquiry and our team will respond promptly.">
+<meta property="og:url" content="https://mmc-group.com/contact.html">
+<meta property="og:image" content="https://mmc-group.com/assets/logo.jpeg">
+<meta property="og:site_name" content="MMC">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Contact — MMC">
+<meta name="twitter:description" content="Meet the MMC leadership team, read client testimonials, browse FAQs, and get in touch — send an inquiry and our team will respond promptly.">
+<meta name="twitter:image" content="https://mmc-group.com/assets/logo.jpeg">
+<link rel="icon" href="assets/logo.jpeg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+/* Always-visible nav on pages without a dark hero at the top */
+body[data-page="contact"] .nav {
+  background: rgba(30,30,30,.82);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  box-shadow: 0 6px 30px rgba(0,0,0,.25);
+  padding: 12px 0;
+}
+</style>
+</head>
+<body data-page="contact.html">
+
+<!-- LOADER -->
+<div class="loader" id="loader">
+  <img src="assets/logo.jpeg" alt="" class="loader-coin">
+</div>
+
+<!-- NAV -->
+<nav class="nav" id="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-brand">
+      <img src="assets/logo.jpeg" alt="MMC" class="nav-coin">
+    </a>
+    <div class="nav-menu" id="navMenu">
+      <ul class="nav-links" id="navLinks">
+        <li><a href="index.html#achievements" class="nav-link">Achievements</a></li>
+        <li><a href="home.html#home" class="nav-link">Home</a></li>
+        <li><a href="contact.html#contact" class="nav-link">Contact</a></li>
+      </ul>
+      <div class="nav-actions" id="navActions">
+        <a href="contact.html#contact" class="btn btn-ghost">Contact Us</a>
+        <a href="login.html" class="btn btn-ghost" id="navLoginLink">Login</a>
+        <a href="register.html" class="btn btn-gold" id="navJoinLink">Join Club</a>
+      </div>
+    </div>
+    <button class="nav-toggle" id="navToggle" aria-label="Toggle menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<section class="section" id="team">
+  <div class="container">
+    <div class="section-head" data-reveal>
+      <span class="eyebrow">Leadership</span>
+      <h2>The people behind MMC</h2>
+      <p class="section-sub">A team built on decades of combined experience in strategy, trust, and long-term value creation.</p>
+    </div>
+    <div class="team-grid" id="teamGrid"></div>
+  </div>
+</section>
+
+<section class="section" id="testimonials">
+  <div class="container">
+    <div class="section-head" data-reveal>
+      <span class="eyebrow">Client Trust</span>
+      <h2>What our partners say</h2>
+    </div>
+
+    <div class="testimonial-slider" data-reveal>
+      <div class="testimonial-viewport">
+        <div class="testimonial-track" id="testimonialTrack">
+
+          <div class="testimonial-slide">
+            <div class="testimonial-slide-inner">
+              <figure class="testimonial-card">
+                <div class="quote-mark">"</div>
+                <blockquote>MMC's team brought a level of clarity and discipline to our portfolio strategy that we hadn't seen elsewhere. The results speak for themselves.</blockquote>
+                <figcaption>
+                  <span class="avatar">RA</span>
+                  <div><strong>Rohan Advani</strong><small>Managing Director, Advani Holdings</small></div>
+                </figcaption>
+              </figure>
+            </div>
+          </div>
+
+          <div class="testimonial-slide">
+            <div class="testimonial-slide-inner">
+              <figure class="testimonial-card">
+                <div class="quote-mark">"</div>
+                <blockquote>Working with MMC felt like gaining a strategic partner, not just a service provider. Their guidance shaped decisions across our entire organization.</blockquote>
+                <figcaption>
+                  <span class="avatar">SK</span>
+                  <div><strong>Sara Khan</strong><small>CFO, Nova Industries</small></div>
+                </figcaption>
+              </figure>
+            </div>
+          </div>
+
+          <div class="testimonial-slide">
+            <div class="testimonial-slide-inner">
+              <figure class="testimonial-card">
+                <div class="quote-mark">"</div>
+                <blockquote>Transparent, precise, and genuinely long-term in their thinking. MMC is the rare partner that earns trust and keeps it.</blockquote>
+                <figcaption>
+                  <span class="avatar">JM</span>
+                  <div><strong>James Moretti</strong><small>Founder, Moretti Capital</small></div>
+                </figcaption>
+              </figure>
+            </div>
+          </div>
+
+        </div>
+      </div>
+      <div class="testimonial-controls">
+        <button class="slider-arrow prev" id="testimonialPrev" aria-label="Previous testimonial">‹</button>
+        <div class="testimonial-dots" id="testimonialDots"></div>
+        <button class="slider-arrow next" id="testimonialNext" aria-label="Next testimonial">›</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section section-alt" id="faq">
+  <div class="container">
+    <div class="section-head centered" data-reveal style="margin-left:auto;margin-right:auto;text-align:center;">
+      <span class="eyebrow">Common Questions</span>
+      <h2>Frequently asked questions</h2>
+    </div>
+    <div class="faq-list" id="faqList"></div>
+  </div>
+</section>
+
+<section class="section section-alt" id="contact">
+  <div class="container contact-grid">
+    <div class="contact-info" data-reveal>
+      <span class="eyebrow">Get in Touch</span>
+      <h2>Let's build something built to last</h2>
+      <p class="section-sub">Send us a note and a member of the MMC team will respond within one business day.</p>
+      <ul class="contact-list">
+        <li><strong>Email</strong><span>hello@mmc-group.com</span></li>
+        <li><strong>Phone</strong><span>+1 (555) 019-2044</span></li>
+        <li><strong>Office</strong><span>One Continental Plaza, Suite 4400</span></li>
+      </ul>
+    </div>
+
+    <form class="contact-form" id="contactForm" data-reveal data-delay="1" novalidate>
+      <div class="form-row">
+        <div class="field">
+          <label for="name">Name</label>
+          <input type="text" id="name" name="name" placeholder="Your full name" required>
+          <span class="field-error" data-error="name"></span>
+        </div>
+        <div class="field">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" placeholder="you@company.com" required>
+          <span class="field-error" data-error="email"></span>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label for="phone">Phone</label>
+          <input type="tel" id="phone" name="phone" placeholder="+1 (555) 000-0000" required>
+          <span class="field-error" data-error="phone"></span>
+        </div>
+      </div>
+      <div class="field">
+        <label for="message">Message</label>
+        <textarea id="message" name="message" rows="5" placeholder="Tell us about your goals" required></textarea>
+        <span class="field-error" data-error="message"></span>
+      </div>
+      <button type="submit" class="btn btn-gold btn-lg btn-block">Send Inquiry</button>
+      <p class="form-success" id="formSuccess" role="status">Thank you — your inquiry has been received.</p>
+    </form>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container footer-grid">
+    <div class="footer-brand">
+      <a href="index.html" class="nav-brand">
+        <img src="assets/logo.jpeg" alt="MMC" class="nav-coin">
+      </a>
+      <p>A premium ecosystem for investment, innovation, and long-term trust.</p>
+      <div class="socials">
+        <a href="#" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="none"><path d="M6.94 8.5H4V20h2.94V8.5ZM5.47 7.13A1.7 1.7 0 1 0 5.47 3.73 1.7 1.7 0 0 0 5.47 7.13ZM20 20h-2.94v-6.02c0-1.44-.03-3.28-2-3.28-2 0-2.31 1.56-2.31 3.18V20H9.8V8.5h2.82v1.57h.04c.39-.74 1.36-1.53 2.8-1.53 3 0 3.54 1.97 3.54 4.54V20Z" fill="currentColor"/></svg></a>
+        <a href="#" aria-label="X / Twitter"><svg viewBox="0 0 24 24" fill="none"><path d="M4 4l16 16M20 4 4 20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></a>
+        <a href="#" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="16" height="16" rx="4" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.6"/><circle cx="17" cy="7" r="1" fill="currentColor"/></svg></a>
+      </div>
+      <div class="footer-newsletter">
+        <h4>Stay in the loop</h4>
+        <form class="newsletter-form" id="newsletterForm">
+          <label for="newsletterEmail" class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">Email address</label>
+          <input type="email" id="newsletterEmail" placeholder="Your email" required>
+          <button type="submit">Join</button>
+        </form>
+        <p class="newsletter-note" id="newsletterNote">Insights and updates, once a month. No spam.</p>
+      </div>
+    </div>
+
+    <div class="footer-links">
+      <h4>Quick Links</h4>
+      <a href="index.html#achievements">Achievements</a>
+      <a href="home.html#home">Home</a>
+      <a href="#contact">Contact</a>
+    </div>
+
+    <div class="footer-links">
+      <h4>Company</h4>
+      <a href="privacy-policy.html">Privacy Policy</a>
+      <a href="terms-of-service.html">Terms of Service</a>
+      <a href="#">Careers</a>
+    </div>
+  </div>
+  <div class="container footer-bottom">
+    <span>© 2026 MMC. All Rights Reserved.</span>
+  </div>
+</footer>
+
+<button class="scroll-top-btn" id="scrollTopBtn" aria-label="Scroll to top">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 15 L12 9 L18 15" stroke-linecap="round" stroke-linejoin="round"/></svg>
+</button>
+
+<script src="config.js"></script>
+<script src="analytics.js"></script>
+<script src="auth.js"></script>
+<script src="script.js"></script>
+</body>
+</html>

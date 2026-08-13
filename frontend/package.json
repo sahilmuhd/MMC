@@ -1,0 +1,12 @@
+{
+  "name": "mmc-frontend",
+  "version": "1.0.0",
+  "description": "Static frontend for the MMC site. No build step required for local dev — just open the HTML files or serve this folder directly. The build step below is only for producing a minified dist/ for deployment.",
+  "private": true,
+  "scripts": {
+    "build": "node build.js"
+  },
+  "devDependencies": {
+    "esbuild": "^0.27.0"
+  }
+}

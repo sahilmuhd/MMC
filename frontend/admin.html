@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard — MMC</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="assets/logo.jpeg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+body[data-page="admin"] .nav {
+  background: rgba(30,30,30,.82);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  box-shadow: 0 6px 30px rgba(0,0,0,.25);
+  padding: 12px 0;
+}
+</style>
+</head>
+<body data-page="admin">
+
+<!-- LOADER -->
+<div class="loader" id="loader">
+  <img src="assets/logo.jpeg" alt="" class="loader-coin">
+</div>
+
+<!-- NAV -->
+<nav class="nav" id="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-brand">
+      <img src="assets/logo.jpeg" alt="MMC" class="nav-coin">
+    </a>
+    <div class="nav-menu" id="navMenu">
+      <ul class="nav-links" id="navLinks">
+        <li><a href="index.html#achievements" class="nav-link">Achievements</a></li>
+        <li><a href="home.html#home" class="nav-link">Home</a></li>
+        <li><a href="contact.html#contact" class="nav-link">Contact</a></li>
+      </ul>
+      <div class="nav-actions" id="navActions">
+        <a href="login.html" class="btn btn-ghost" id="navLoginLink">Login</a>
+        <a href="register.html" class="btn btn-gold" id="navJoinLink">Join Club</a>
+      </div>
+    </div>
+    <button class="nav-toggle" id="navToggle" aria-label="Toggle menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<!-- Shown only if the logged-in user is NOT an admin -->
+<div class="admin-denied" id="adminDenied" style="display:none;">
+  <h2>Admins only</h2>
+  <p>You need an admin account to view this page. <a href="login.html">Log in</a> with an admin account, or head back to the <a href="index.html">homepage</a>.</p>
+</div>
+
+<div class="admin-shell" id="adminShell" style="display:none;">
+  <div class="admin-header">
+    <div>
+      <h1>Admin Dashboard</h1>
+      <p>Contact submissions, newsletter subscribers, and registered users.</p>
+    </div>
+  </div>
+
+  <div class="admin-summary" id="adminSummary"></div>
+
+  <div class="admin-panel">
+    <h2>Contact submissions</h2>
+    <div class="admin-table-wrap" id="contactsTableWrap"></div>
+  </div>
+
+  <div class="admin-panel">
+    <h2>Newsletter subscribers</h2>
+    <div class="admin-table-wrap" id="subscribersTableWrap"></div>
+  </div>
+
+  <div class="admin-panel">
+    <h2>Registered users</h2>
+    <div class="admin-table-wrap" id="usersTableWrap"></div>
+  </div>
+</div>
+
+<button class="scroll-top-btn" id="scrollTopBtn" aria-label="Scroll to top">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 15 L12 9 L18 15" stroke-linecap="round" stroke-linejoin="round"/></svg>
+</button>
+
+<script src="config.js"></script>
+<script src="analytics.js"></script>
+<script src="auth.js"></script>
+<script src="admin.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
