@@ -31,7 +31,13 @@
   function renderLoggedInNav(user) {
     const actions = document.getElementById("navActions");
     if (!actions) return;
+    const points = typeof user.points_balance === "number" ? user.points_balance : null;
+    const isAdmin = user.role === "admin" || user.role === "super_admin";
     actions.innerHTML = `
+      ${isAdmin ? `<a href="admin.html" class="btn btn-ghost nav-admin-btn">Admin Panel</a>` : ""}
+      <a href="my-achievements.html" class="nav-points-pill" title="View my achievements">
+        ${points !== null ? `<span class="nav-points-num">${points.toLocaleString()}</span> pts` : "My achievements"}
+      </a>
       <span class="nav-user-pill">Hi, ${escapeHtml(firstName(user.name))}
         <button type="button" class="nav-logout-btn" id="navLogoutBtn">Log out</button>
       </span>
