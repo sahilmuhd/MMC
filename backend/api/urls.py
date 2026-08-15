@@ -26,6 +26,8 @@ urlpatterns = [
     path("admin/members/<int:pk>/", mv.MemberDetailView.as_view()),
     path("admin/members/<int:pk>/deactivate/", mv.MemberDeactivateView.as_view()),
     path("admin/members/<int:pk>/reactivate/", mv.MemberReactivateView.as_view()),
+    path("admin/members/<int:pk>/reassign-sponsor/", mv.SponsorReassignView.as_view()),
+    path("admin/members/<int:pk>/ancestors/", mv.MemberAncestorsView.as_view()),
 
     # Hierarchy (self or admin)
     path("members/<int:pk>/hierarchy/", mv.MemberHierarchyView.as_view()),
@@ -40,10 +42,13 @@ urlpatterns = [
 
     # Achievements
     path("achievements/", mv.AchievementListView.as_view()),
+    path("achievements/<int:pk>/proofs/", mv.AchievementProofUploadView.as_view()),
+    path("achievements/<int:pk>/proofs/<int:proof_id>/", mv.AchievementProofUploadView.as_view()),
     path("admin/achievements/<int:pk>/approve/", mv.AchievementApproveView.as_view()),
     path("admin/achievements/<int:pk>/reject/", mv.AchievementRejectView.as_view()),
 
     # Points
+    path("admin/points/overview/", mv.PointsOverviewView.as_view()),
     path("admin/points/adjust/", mv.PointsAdjustView.as_view()),
     path("members/<int:pk>/points/history/", mv.PointsHistoryView.as_view()),
 
@@ -61,4 +66,23 @@ urlpatterns = [
 
     # Audit log
     path("admin/audit-logs/", mv.AuditLogListView.as_view()),
+
+    # Messages (contact submissions -- admin management)
+    path("admin/messages/", mv.MessageListView.as_view()),
+    path("admin/messages/<int:pk>/", mv.MessageDetailView.as_view()),
+
+    # Site content (CMS) -- GET public, PUT/POST/PATCH/DELETE admin-gated
+    path("content/<str:key>/", mv.SiteContentView.as_view()),
+    path("team/", mv.TeamMemberListCreateView.as_view()),
+    path("team/<int:pk>/", mv.TeamMemberDetailView.as_view()),
+    path("products/", mv.ProductListCreateView.as_view()),
+    path("products/<int:pk>/", mv.ProductDetailView.as_view()),
+
+    # Notifications
+    path("notifications/", mv.NotificationListView.as_view()),
+    path("notifications/mark-all-read/", mv.NotificationMarkReadView.as_view()),
+    path("notifications/<int:pk>/read/", mv.NotificationMarkReadView.as_view()),
+
+    # Reports export
+    path("admin/reports/<str:kind>/export/", mv.ReportExportView.as_view()),
 ]

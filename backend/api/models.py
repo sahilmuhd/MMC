@@ -82,6 +82,9 @@ class User(AbstractBaseUser, PermissionsMixin):
             ("edit_photos", "Can replace member photos"),
             ("delete_photos", "Can delete member photos"),
             ("view_audit_logs", "Can view audit logs"),
+            ("edit_site_content", "Can edit public site content (homepage, team, products)"),
+            ("view_messages", "Can view contact messages"),
+            ("manage_messages", "Can reply to/delete contact messages"),
         ]
 
     def __str__(self):
@@ -111,9 +114,16 @@ class ContactSubmission(models.Model):
     message = models.TextField()
     ip = models.GenericIPAddressField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+    is_archived = models.BooleanField(default=False)
+    admin_reply = models.TextField(blank=True)
+    replied_at = models.DateTimeField(null=True, blank=True)
+    replied_by = models.ForeignKey(
+        "User", null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
 
     class Meta:
-        ordering = ["id"]
+        ordering = ["-created_at"]
 
     def __str__(self):
         return f"{self.name} <{self.email}>"
@@ -188,6 +198,39 @@ class GoalAchievement(models.Model):
 
     def __str__(self):
         return f"{self.member} -> {self.goal} ({self.approval_status})"
+
+
+def achievement_proof_path(instance, filename):
+    return f"achievement_proofs/{instance.achievement_id}/{filename}"
+
+
+class AchievementProof(models.Model):
+    """A supporting file (image/PDF/doc) attached to a submitted achievement.
+    Kept as a separate model rather than a single FileField on
+    GoalAchievement so a member can attach more than one file per
+    submission."""
+
+    ALLOWED_CONTENT_TYPES = (
+        "image/jpeg", "image/png", "image/webp",
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    )
+    MAX_SIZE_BYTES = 10 * 1024 * 1024  # 10MB
+
+    achievement = models.ForeignKey(GoalAchievement, on_delete=models.CASCADE, related_name="proofs")
+    file = models.FileField(upload_to=achievement_proof_path)
+    original_name = models.CharField(max_length=255, blank=True)
+    content_type = models.CharField(max_length=100, blank=True)
+    size = models.PositiveIntegerField(default=0)
+    uploaded_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-uploaded_at"]
+
+    def __str__(self):
+        return f"Proof for achievement #{self.achievement_id}: {self.original_name}"
 
 
 # ---------------------------------------------------------------------------
@@ -271,3 +314,103 @@ class AuditLog(models.Model):
 
     def __str__(self):
         return f"{self.action} by {self.actor} @ {self.created_at}"
+
+
+# ---------------------------------------------------------------------------
+# Site content (public-facing CMS, admin-managed)
+# ---------------------------------------------------------------------------
+
+
+class SiteContent(models.Model):
+    """Singleton-per-key store for editable public page content (hero copy,
+    homepage stats, etc). One row per logical `key` ('homepage', ...) with
+    a free-form JSON body -- avoids a rigid model per section while still
+    keeping everything DB-driven instead of hardcoded in the frontend."""
+
+    key = models.CharField(max_length=100, unique=True, db_index=True)
+    data = models.JSONField(default=dict, blank=True)
+    updated_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["key"]
+
+    def __str__(self):
+        return self.key
+
+
+class TeamMember(models.Model):
+    name = models.CharField(max_length=150)
+    position = models.CharField(max_length=150, blank=True)
+    photo = models.ImageField(upload_to="team_photos/", null=True, blank=True)
+    description = models.TextField(blank=True)
+    social_links = models.JSONField(default=dict, blank=True)
+    is_active = models.BooleanField(default=True)
+    order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["order", "id"]
+
+    def __str__(self):
+        return self.name
+
+
+class Product(models.Model):
+    name = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    price = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    images = models.JSONField(default=list, blank=True)
+    features = models.JSONField(default=list, blank=True)
+    is_active = models.BooleanField(default=True)
+    order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["order", "id"]
+
+    def __str__(self):
+        return self.name
+
+
+# ---------------------------------------------------------------------------
+# Notifications
+# ---------------------------------------------------------------------------
+
+
+class Notification(models.Model):
+    """In-app notification for a member or admin. `event` is a stable
+    machine-readable key (e.g. 'achievement_approved') so the frontend can
+    route/icon it without parsing free text."""
+
+    EVENT_CHOICES = (
+        ("new_member", "New member registered"),
+        ("new_achievement_submission", "New achievement submitted"),
+        ("achievement_needs_review", "Achievement requires review"),
+        ("achievement_approved", "Achievement approved"),
+        ("achievement_rejected", "Achievement rejected"),
+        ("points_received", "Points received"),
+        ("income_pending_approval", "Income requires approval"),
+        ("income_approved", "Income approved"),
+        ("income_paid", "Income paid"),
+        ("sponsor_reassigned", "Sponsor reassigned"),
+        ("system", "System notice"),
+    )
+
+    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notifications")
+    event = models.CharField(max_length=40, choices=EVENT_CHOICES)
+    title = models.CharField(max_length=200)
+    body = models.TextField(blank=True)
+    target_model = models.CharField(max_length=100, blank=True)
+    target_id = models.CharField(max_length=50, blank=True)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["recipient", "is_read"])]
+
+    def __str__(self):
+        return f"{self.event} -> {self.recipient} ({'read' if self.is_read else 'unread'})"

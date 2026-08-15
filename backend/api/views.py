@@ -192,12 +192,27 @@ class LoginView(APIView):
 
 class MeView(APIView):
     """Protected — returns the current user based on their token. The
-    frontend calls this on page load to check 'am I still logged in?'"""
+    frontend calls this on page load to check 'am I still logged in?'
+    Also returns `permissions`: the codenames this user holds, so the
+    admin-panel sidebar can show/hide sections without a second request.
+    Super admins implicitly hold everything (see permissions.py), so we
+    report the full assignable set for them rather than their (possibly
+    empty) explicit grants."""
 
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        return Response({"ok": True, "user": request.user.public_dict()})
+        user = request.user
+        data = user.public_dict()
+        if user.role == "super_admin":
+            data["permissions"] = [codename for codename, _ in User._meta.permissions]
+        elif user.role == "admin":
+            data["permissions"] = list(
+                user.user_permissions.filter(content_type__app_label="api").values_list("codename", flat=True)
+            )
+        else:
+            data["permissions"] = []
+        return Response({"ok": True, "user": data})
 
 
 class ForgotPasswordView(APIView):

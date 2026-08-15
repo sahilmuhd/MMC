@@ -6,9 +6,14 @@ from .models import (
     NewsletterSubscriber,
     Goal,
     GoalAchievement,
+    AchievementProof,
     PointsTransaction,
     IncomeRecord,
     AuditLog,
+    SiteContent,
+    TeamMember,
+    Product,
+    Notification,
 )
 
 
@@ -50,6 +55,13 @@ class GoalAchievementAdmin(admin.ModelAdmin):
     ordering = ("-submitted_at",)
 
 
+@admin.register(AchievementProof)
+class AchievementProofAdmin(admin.ModelAdmin):
+    list_display = ("id", "achievement", "original_name", "content_type", "size", "uploaded_by", "uploaded_at")
+    search_fields = ("original_name", "achievement__member__name")
+    ordering = ("-uploaded_at",)
+
+
 @admin.register(PointsTransaction)
 class PointsTransactionAdmin(admin.ModelAdmin):
     list_display = ("id", "member", "points", "reason", "created_by", "created_at")
@@ -75,3 +87,33 @@ class AuditLogAdmin(admin.ModelAdmin):
 
     def has_add_permission(self, request):
         return False
+
+
+@admin.register(SiteContent)
+class SiteContentAdmin(admin.ModelAdmin):
+    list_display = ("id", "key", "updated_by", "updated_at")
+    search_fields = ("key",)
+
+
+@admin.register(TeamMember)
+class TeamMemberAdmin(admin.ModelAdmin):
+    list_display = ("id", "name", "position", "is_active", "order")
+    list_filter = ("is_active",)
+    search_fields = ("name", "position")
+    ordering = ("order", "id")
+
+
+@admin.register(Product)
+class ProductAdmin(admin.ModelAdmin):
+    list_display = ("id", "name", "price", "is_active", "order")
+    list_filter = ("is_active",)
+    search_fields = ("name",)
+    ordering = ("order", "id")
+
+
+@admin.register(Notification)
+class NotificationAdmin(admin.ModelAdmin):
+    list_display = ("id", "recipient", "event", "title", "is_read", "created_at")
+    list_filter = ("event", "is_read")
+    search_fields = ("recipient__name", "title")
+    ordering = ("-created_at",)
