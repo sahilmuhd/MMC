@@ -143,11 +143,17 @@
     window.location.hash = name;
   }
 
+  function closeMobileSidebar() {
+    document.getElementById("admSide").classList.remove("open");
+    document.getElementById("admSideBackdrop").classList.remove("open");
+  }
+
   function wireNav() {
     document.querySelectorAll(".adm-nav-link[data-section]").forEach((btn) => {
       btn.addEventListener("click", () => {
         if (btn.hasAttribute("disabled")) return;
         showSection(btn.dataset.section);
+        closeMobileSidebar(); // picking a section on mobile should close the menu, not leave it covering the screen
       });
     });
     document.getElementById("logoutBtn").addEventListener("click", () => {
@@ -155,6 +161,12 @@
       window.location.href = "login.html";
     });
     document.getElementById("admBell").addEventListener("click", loadNotificationsPreview);
+
+    document.getElementById("admHamburger").addEventListener("click", () => {
+      document.getElementById("admSide").classList.add("open");
+      document.getElementById("admSideBackdrop").classList.add("open");
+    });
+    document.getElementById("admSideBackdrop").addEventListener("click", closeMobileSidebar);
   }
 
   // ---------------------------------------------------------------------
@@ -366,6 +378,79 @@
 
   function statusBadge(status) { return `<span class="adm-badge ${escapeHtml(status)}">${escapeHtml(status)}</span>`; }
   function roleBadge(role) { return `<span class="adm-badge ${escapeHtml(role)}">${escapeHtml(role.replace("_", " "))}</span>`; }
+  function rankBadge(rank) {
+    if (!rank) return "—";
+    const slug = `rank-${rank.toLowerCase().replace(/\s+/g, "-")}`;
+    return `<span class="adm-badge ${escapeHtml(slug)}">${escapeHtml(rank)}</span>`;
+  }
+
+  // ---------------------------------------------------------------------
+  // Shared member typeahead -- turns a text input + hidden id field into
+  // a live-search "pick a member" widget. Used anywhere an admin needs
+  // to choose a sponsor (Add/Edit Member, Reassign Sponsor) instead of
+  // typing a raw internal ID from memory.
+  // ---------------------------------------------------------------------
+
+  function memberTypeaheadHtml(fieldId, label, placeholder, initialLabel, initialId) {
+    return `
+      <div class="adm-form-field">
+        <label>${escapeHtml(label)}</label>
+        <input class="adm-input" id="${fieldId}_display" placeholder="${escapeHtml(placeholder)}" autocomplete="off" value="${escapeHtml(initialLabel || "")}">
+        <input type="hidden" id="${fieldId}_id" value="${escapeHtml(initialId || "")}">
+        <div class="adm-search-dropdown full-width" id="${fieldId}_results"></div>
+      </div>`;
+  }
+
+  function wireMemberTypeahead(fieldId, { excludeId, onPick } = {}) {
+    const input = document.getElementById(`${fieldId}_display`);
+    const hidden = document.getElementById(`${fieldId}_id`);
+    const dropdown = document.getElementById(`${fieldId}_results`);
+    let t;
+
+    input.addEventListener("input", (e) => {
+      hidden.value = ""; // typing invalidates whatever was previously picked
+      clearTimeout(t);
+      const q = e.target.value.trim();
+      if (!q) { dropdown.classList.remove("open"); return; }
+      t = setTimeout(async () => {
+        try {
+          const data = await authedFetch(`/api/admin/members/?search=${encodeURIComponent(q)}&page_size=8`);
+          const results = data.results.filter((m) => String(m.id) !== String(excludeId));
+          dropdown.innerHTML = results.length
+            ? results.map((m) => `
+                <div class="adm-search-item" data-id="${m.id}" data-name="${escapeHtml(m.name)}" data-member-id="${escapeHtml(m.member_id)}">
+                  <div class="n">${escapeHtml(m.name)}</div>
+                  <div class="m">${escapeHtml(m.member_id)} · ${escapeHtml(m.email)}</div>
+                </div>`).join("")
+            : `<div class="adm-search-empty">No matches.</div>`;
+          dropdown.classList.add("open");
+          dropdown.querySelectorAll("[data-id]").forEach((el) => {
+            el.addEventListener("click", () => {
+              hidden.value = el.dataset.id;
+              input.value = `${el.dataset.name} (${el.dataset.memberId})`;
+              dropdown.classList.remove("open");
+              if (onPick) onPick(el.dataset.id, el.dataset.name);
+            });
+          });
+        } catch (err) { toast(err.message, "error"); }
+      }, 300);
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!e.target.closest(`#${fieldId}_display`) && !e.target.closest(`#${fieldId}_results`)) {
+        dropdown.classList.remove("open");
+      }
+    });
+
+    // "clear" support: if the field is emptied entirely, treat it as "no sponsor / root"
+    input.addEventListener("blur", () => {
+      if (!input.value.trim()) hidden.value = "";
+    });
+  }
+
+  function memberTypeaheadValue(fieldId) {
+    return document.getElementById(`${fieldId}_id`).value.trim();
+  }
 
   function memberActionsCell(m) {
     const canEdit = hasPerm("edit_members");
@@ -393,6 +478,7 @@
           <td>${escapeHtml(m.mobile || "—")}</td>
           <td>${escapeHtml(m.sponsor_name || "—")}</td>
           <td>${roleBadge(m.role)}</td>
+          <td>${rankBadge(m.rank)}</td>
           <td>${m.points_balance}</td>
           <td>${m.team_size}</td>
           <td>${statusBadge(m.status)}</td>
@@ -400,7 +486,7 @@
           <td>${memberActionsCell(m)}</td>
         </tr>`).join("");
       wrap.innerHTML = `<table class="adm-table"><thead><tr>
-        <th>Member</th><th>ID</th><th>Email</th><th>Mobile</th><th>Sponsor</th><th>Role</th><th>Points</th><th>Team</th><th>Status</th><th>Joined</th><th>Actions</th>
+        <th>Member</th><th>ID</th><th>Email</th><th>Mobile</th><th>Sponsor</th><th>Role</th><th>Rank</th><th>Points</th><th>Team</th><th>Status</th><th>Joined</th><th>Actions</th>
       </tr></thead><tbody>${rows}</tbody></table>`;
     }
 
@@ -474,7 +560,7 @@
       <div class="adm-form-field"><label>Email</label><input class="adm-input" id="fEmail" type="email" value="${escapeHtml(member?.email || "")}" ${isEdit ? "disabled" : ""}></div>
       ${isEdit ? "" : `<div class="adm-form-field"><label>Password</label><input class="adm-input" id="fPassword" type="password"></div>`}
       <div class="adm-form-field"><label>Mobile</label><input class="adm-input" id="fMobile" value="${escapeHtml(member?.mobile || "")}"></div>
-      <div class="adm-form-field"><label>Sponsor (member ID, optional)</label><input class="adm-input" id="fParent" placeholder="Leave blank for root" value="${member?.parent ? member.parent : ""}"></div>
+      ${memberTypeaheadHtml("fParent", "Sponsor (optional)", "Search by name, ID, or email…", member?.parent ? `${member.sponsor_name || ""} (${member.parent})` : "", member?.parent || "")}
       ${canChangeRole ? `
       <div class="adm-form-field"><label>Role</label>
         <select class="adm-select" id="fRole">
@@ -489,6 +575,7 @@
         <button class="adm-btn primary" id="fSubmit">${isEdit ? "Save Changes" : "Create Member"}</button>
       </div>
     `);
+    wireMemberTypeahead("fParent", { excludeId: memberId });
     document.getElementById("fCancel").onclick = closeModal;
     document.getElementById("fSubmit").onclick = async () => {
       const errEl = document.getElementById("fError");
@@ -497,7 +584,7 @@
         name: document.getElementById("fName").value.trim(),
         mobile: document.getElementById("fMobile").value.trim(),
       };
-      const parentVal = document.getElementById("fParent").value.trim();
+      const parentVal = memberTypeaheadValue("fParent");
       if (parentVal) body.parent = parentVal;
       if (canChangeRole) body.role = document.getElementById("fRole").value;
       try {
@@ -612,6 +699,7 @@
         <div class="kv"><div class="k">Mobile</div><div class="v">${escapeHtml(member.mobile || "—")}</div></div>
         <div class="kv"><div class="k">Sponsor</div><div class="v">${escapeHtml(member.sponsor_name || "—")}</div></div>
         <div class="kv"><div class="k">Role</div><div class="v">${roleBadge(member.role)}</div></div>
+        <div class="kv"><div class="k">Rank</div><div class="v">${rankBadge(member.rank)}</div></div>
         <div class="kv"><div class="k">Points Balance</div><div class="v">${member.points_balance}</div></div>
         <div class="kv"><div class="k">Total Income Paid</div><div class="v">₹${member.total_income_paid}</div></div>
         <div class="kv"><div class="k">Joined</div><div class="v">${formatDate(member.created_at)}</div></div>
@@ -632,18 +720,17 @@
     openModal(`
       <h3>Reassign Sponsor</h3>
       <p style="color:var(--adm-text-dim); font-size:.85rem;">Changing <strong>${escapeHtml(member.name)}</strong>'s sponsor updates the MLM hierarchy. This cannot create a circular relationship — the server will reject that.</p>
-      <div class="adm-form-field"><label>New sponsor — internal member ID (blank = no sponsor / root)</label>
-        <input class="adm-input" id="fNewSponsor" placeholder="e.g. 42">
-      </div>
+      ${memberTypeaheadHtml("fNewSponsor", "New sponsor", "Search by name, ID, or email… (blank = no sponsor / root)", "", "")}
       <div class="adm-form-error" id="fReassignError"></div>
       <div class="adm-modal-actions">
         <button class="adm-btn" id="fReassignCancel">Cancel</button>
         <button class="adm-btn primary" id="fReassignSubmit">Reassign</button>
       </div>
     `);
+    wireMemberTypeahead("fNewSponsor", { excludeId: member.id });
     document.getElementById("fReassignCancel").onclick = closeModal;
     document.getElementById("fReassignSubmit").onclick = async () => {
-      const val = document.getElementById("fNewSponsor").value.trim();
+      const val = memberTypeaheadValue("fNewSponsor");
       const errEl = document.getElementById("fReassignError");
       try {
         await authedFetch(`/api/admin/members/${member.id}/reassign-sponsor/`, {
@@ -752,7 +839,7 @@
   // MLM Network (interactive flow chart)
   // ---------------------------------------------------------------------
 
-  const NODE_W = 190, NODE_H = 96, H_GAP = 46, V_GAP = 90;
+  const NODE_W = 190, NODE_H = 114, H_GAP = 46, V_GAP = 90;
 
   const netState = {
     rootId: null,
@@ -771,9 +858,11 @@
       name: apiNode.name,
       status: apiNode.status,
       points_balance: apiNode.points_balance,
+      rank: apiNode.rank,
       profile_photo: apiNode.profile_photo,
       has_children: apiNode.has_children,
       team_direct: Array.isArray(apiNode.children) ? apiNode.children.length : null,
+      team_total: apiNode.team_total != null ? apiNode.team_total : null,
       children: Array.isArray(apiNode.children) ? apiNode.children.map(netDatumFromApiNode) : null,
     };
   }
@@ -902,16 +991,28 @@
     nodeSel.append("text").attr("class", "n-name").attr("x", 48).attr("y", 22).text((d) => truncate(d.data.name, 17));
     nodeSel.append("text").attr("class", "n-id").attr("x", 48).attr("y", 36).text((d) => d.data.member_id);
 
-    nodeSel.append("text").attr("class", "n-meta").attr("x", 14).attr("y", 58)
-      .text((d) => `⭐ ${d.data.points_balance ?? 0} pts`);
-    nodeSel.append("text").attr("class", "n-meta").attr("x", 14).attr("y", 76)
-      .text((d) => `👥 ${d.data.team_direct != null ? d.data.team_direct : "?"} direct`);
+    nodeSel.append("text").attr("class", "n-rank").attr("x", 14).attr("y", 56)
+      .text((d) => (d.data.rank || "").toUpperCase());
 
-    // Expand/collapse affordance -- separate click target from the card body
+    nodeSel.append("text").attr("class", "n-meta").attr("x", 14).attr("y", 76)
+      .text((d) => `⭐ ${d.data.points_balance ?? 0} pts`);
+    // Total downline (whole subtree), with the direct-referral count as a
+    // hover tooltip -- the card only has room for one number, and "total
+    // team" is what an admin scanning the chart actually wants to see.
+    nodeSel.append("text").attr("class", "n-meta").attr("x", 14).attr("y", 94)
+      .text((d) => `👥 ${d.data.team_total != null ? d.data.team_total : (d.data.team_direct != null ? d.data.team_direct : "?")} team`)
+      .append("title")
+      .text((d) => `${d.data.team_direct != null ? d.data.team_direct : "?"} direct referral${d.data.team_direct === 1 ? "" : "s"}`);
+
+    // Expand/collapse affordance -- separate click target from the card body.
+    // A larger invisible circle sits behind the visible one purely to widen
+    // the tappable area on touch devices (WCAG/platform guidance is ~44px
+    // touch targets; the visible 10px-radius dot stays small and clean).
     nodeSel.filter((d) => d.data.has_children).each(function (d) {
       const grp = d3.select(this).append("g")
         .attr("class", "net-expand")
         .attr("transform", `translate(${NODE_W / 2}, ${NODE_H + 2})`);
+      grp.append("circle").attr("r", 20).attr("fill", "transparent").attr("pointer-events", "all");
       grp.append("circle").attr("r", 10);
       grp.append("text").text(d.data._collapsed || !d.data.children ? "+" : "−");
       grp.on("click", (event) => {
@@ -1479,7 +1580,8 @@
     try {
       const data = await authedFetch(`/api/content/${key}/`);
       document.getElementById(textareaId).value = JSON.stringify(data.content.data, null, 2);
-    } catch (err) { toast(err.message, "error"); }
+      return data.content.data;
+    } catch (err) { toast(err.message, "error"); return {}; }
   }
 
   async function saveSiteContentJson(key, textareaId) {
@@ -1490,6 +1592,120 @@
     try {
       await authedFetch(`/api/content/${key}/`, { method: "PUT", body: JSON.stringify({ data: parsed }) });
       toast("Saved.", "success");
+    } catch (err) { toast(err.message, "error"); }
+  }
+
+  // ---- Homepage: structured fields on top of the same free-form JSON ----
+
+  function addHomepageStatRow(value, label) {
+    const wrap = document.getElementById("hpStatsRows");
+    const row = document.createElement("div");
+    row.className = "adm-stat-row";
+    row.style.cssText = "display:flex; gap:8px; margin-bottom:8px; align-items:center;";
+    row.innerHTML = `
+      <input class="adm-input hp-stat-value" placeholder="e.g. 10+" style="width:90px;" value="${escapeHtml(value || "")}">
+      <input class="adm-input hp-stat-label" placeholder="e.g. Years of Excellence" style="flex:1;" value="${escapeHtml(label || "")}">
+      <button class="icon-btn danger" type="button" title="Remove">🗑</button>
+    `;
+    row.querySelector("button").onclick = () => row.remove();
+    wrap.appendChild(row);
+  }
+
+  function collectHomepageStats() {
+    return [...document.querySelectorAll("#hpStatsRows .adm-stat-row")].map((row) => ({
+      value: row.querySelector(".hp-stat-value").value.trim(),
+      label: row.querySelector(".hp-stat-label").value.trim(),
+    })).filter((s) => s.value || s.label);
+  }
+
+  async function loadHomepageContent() {
+    const data = await loadSiteContentJson("homepage", "homepageJson");
+    document.getElementById("hpBadge").value = data.badge || "";
+    document.getElementById("hpTitle").value = data.hero_title || "";
+    document.getElementById("hpSubtitle").value = data.hero_subtitle || "";
+    document.getElementById("hpCtaPrimaryLabel").value = data.cta_primary_label || "";
+    document.getElementById("hpCtaPrimaryUrl").value = data.cta_primary_url || "";
+    document.getElementById("hpCtaSecondaryLabel").value = data.cta_secondary_label || "";
+    document.getElementById("hpCtaSecondaryUrl").value = data.cta_secondary_url || "";
+    document.getElementById("hpStatsRows").innerHTML = "";
+    (data.stats || []).forEach((s) => addHomepageStatRow(s.value, s.label));
+  }
+
+  async function saveHomepageContent() {
+    const rawText = document.getElementById("homepageJson").value;
+    let base;
+    try { base = rawText.trim() ? JSON.parse(rawText) : {}; }
+    catch { toast("The advanced JSON box isn't valid JSON — fix or clear it before saving.", "error"); return; }
+
+    const merged = {
+      ...base,
+      badge: document.getElementById("hpBadge").value.trim(),
+      hero_title: document.getElementById("hpTitle").value.trim(),
+      hero_subtitle: document.getElementById("hpSubtitle").value.trim(),
+      cta_primary_label: document.getElementById("hpCtaPrimaryLabel").value.trim(),
+      cta_primary_url: document.getElementById("hpCtaPrimaryUrl").value.trim(),
+      cta_secondary_label: document.getElementById("hpCtaSecondaryLabel").value.trim(),
+      cta_secondary_url: document.getElementById("hpCtaSecondaryUrl").value.trim(),
+      stats: collectHomepageStats(),
+    };
+    try {
+      await authedFetch("/api/content/homepage/", { method: "PUT", body: JSON.stringify({ data: merged }) });
+      document.getElementById("homepageJson").value = JSON.stringify(merged, null, 2);
+      toast("Homepage content saved.", "success");
+    } catch (err) { toast(err.message, "error"); }
+  }
+
+  // ---- Achievements copy: same pattern ----
+
+  function addAchievementItemRow(title, description) {
+    const wrap = document.getElementById("acItemsRows");
+    const row = document.createElement("div");
+    row.className = "adm-achitem-row";
+    row.style.cssText = "border:1px solid var(--adm-line); border-radius:10px; padding:10px; margin-bottom:8px;";
+    row.innerHTML = `
+      <div style="display:flex; gap:8px; align-items:flex-start;">
+        <div style="flex:1;">
+          <input class="adm-input ac-item-title" placeholder="Highlight title" style="width:100%; margin-bottom:6px;" value="${escapeHtml(title || "")}">
+          <textarea class="adm-input ac-item-desc" placeholder="Short description" rows="2" style="width:100%;">${escapeHtml(description || "")}</textarea>
+        </div>
+        <button class="icon-btn danger" type="button" title="Remove">🗑</button>
+      </div>
+    `;
+    row.querySelector("button").onclick = () => row.remove();
+    wrap.appendChild(row);
+  }
+
+  function collectAchievementItems() {
+    return [...document.querySelectorAll("#acItemsRows .adm-achitem-row")].map((row) => ({
+      title: row.querySelector(".ac-item-title").value.trim(),
+      description: row.querySelector(".ac-item-desc").value.trim(),
+    })).filter((i) => i.title || i.description);
+  }
+
+  async function loadAchievementsContent() {
+    const data = await loadSiteContentJson("achievements", "achievementsJson");
+    document.getElementById("acEyebrow").value = data.eyebrow || "";
+    document.getElementById("acHeading").value = data.heading || "";
+    document.getElementById("acItemsRows").innerHTML = "";
+    (data.items || []).forEach((i) => addAchievementItemRow(i.title, i.description));
+  }
+
+  async function saveAchievementsContent() {
+    const rawText = document.getElementById("achievementsJson").value;
+    let base;
+    try { base = rawText.trim() ? JSON.parse(rawText) : {}; }
+    catch { toast("The advanced JSON box isn't valid JSON — fix or clear it before saving.", "error"); return; }
+
+    const merged = {
+      ...base,
+      eyebrow: document.getElementById("acEyebrow").value.trim(),
+      heading: document.getElementById("acHeading").value.trim(),
+      items: collectAchievementItems(),
+    };
+    try {
+      await authedFetch("/api/content/achievements/", { method: "PUT", body: JSON.stringify({ data: merged }) });
+      document.getElementById("achievementsJson").value = JSON.stringify(merged, null, 2);
+      toast("Achievements content saved.", "success");
     } catch (err) { toast(err.message, "error"); }
   }
 
@@ -1520,12 +1736,19 @@
 
   function openTeamForm(member) {
     const isEdit = !!member;
+    const existingPhoto = member?.photo ? (member.photo.startsWith("http") ? member.photo : `${apiBase()}${member.photo}`) : null;
     openModal(`
       <h3>${isEdit ? "Edit Team Member" : "Add Team Member"}</h3>
       <div class="adm-form-field"><label>Name</label><input class="adm-input" id="tName" value="${escapeHtml(member?.name || "")}"></div>
       <div class="adm-form-field"><label>Position</label><input class="adm-input" id="tPosition" value="${escapeHtml(member?.position || "")}"></div>
       <div class="adm-form-field"><label>Description</label><textarea class="adm-input" id="tDesc" rows="3">${escapeHtml(member?.description || "")}</textarea></div>
       <div class="adm-form-field"><label>Order</label><input class="adm-input" id="tOrder" type="number" value="${member?.order ?? 0}"></div>
+      <div class="adm-form-field">
+        <label>Photo</label>
+        ${existingPhoto ? `<img src="${existingPhoto}" alt="" style="display:block; width:64px; height:64px; border-radius:50%; object-fit:cover; margin-bottom:8px;">` : ""}
+        <input class="adm-input" id="tPhoto" type="file" accept="image/jpeg,image/png,image/webp">
+        <div style="font-size:.72rem; color:var(--adm-gray); margin-top:4px;">${existingPhoto ? "Choose a file to replace it, or leave blank to keep the current photo." : "Optional — JPEG, PNG, or WebP."}</div>
+      </div>
       <div class="adm-form-error" id="tError"></div>
       <div class="adm-modal-actions">
         <button class="adm-btn" id="tCancel">Cancel</button>
@@ -1534,17 +1757,21 @@
     `);
     document.getElementById("tCancel").onclick = closeModal;
     document.getElementById("tSubmit").onclick = async () => {
-      const body = {
-        name: document.getElementById("tName").value.trim(),
-        position: document.getElementById("tPosition").value.trim(),
-        description: document.getElementById("tDesc").value.trim(),
-        order: document.getElementById("tOrder").value,
-      };
+      const name = document.getElementById("tName").value.trim();
       const errEl = document.getElementById("tError");
-      if (!body.name) { errEl.textContent = "Name is required."; errEl.classList.add("show"); return; }
+      if (!name) { errEl.textContent = "Name is required."; errEl.classList.add("show"); return; }
+
+      const form = new FormData();
+      form.append("name", name);
+      form.append("position", document.getElementById("tPosition").value.trim());
+      form.append("description", document.getElementById("tDesc").value.trim());
+      form.append("order", document.getElementById("tOrder").value);
+      const photoFile = document.getElementById("tPhoto").files[0];
+      if (photoFile) form.append("photo", photoFile);
+
       try {
-        if (isEdit) await authedFetch(`/api/team/${member.id}/`, { method: "PATCH", body: JSON.stringify(body) });
-        else await authedFetch("/api/team/", { method: "POST", body: JSON.stringify(body) });
+        if (isEdit) await authedFetch(`/api/team/${member.id}/`, { method: "PATCH", body: form });
+        else await authedFetch("/api/team/", { method: "POST", body: form });
         toast(isEdit ? "Updated." : "Created.", "success");
         closeModal();
         loadTeamTab();
@@ -1603,12 +1830,60 @@
       <div class="adm-form-field"><label>Description</label><textarea class="adm-input" id="pdDesc" rows="3">${escapeHtml(product?.description || "")}</textarea></div>
       <div class="adm-form-field"><label>Price (₹)</label><input class="adm-input" id="pdPrice" type="number" step="0.01" value="${product?.price ?? 0}"></div>
       <div class="adm-form-field"><label>Order</label><input class="adm-input" id="pdOrder" type="number" value="${product?.order ?? 0}"></div>
+      <div class="adm-form-field">
+        <label>Images</label>
+        ${isEdit ? `
+          <div id="pdImagesGrid" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:8px;"></div>
+          <input class="adm-input" id="pdImageUpload" type="file" accept="image/jpeg,image/png,image/webp,image/gif">
+          <div style="font-size:.72rem; color:var(--adm-gray); margin-top:4px;">Selecting a file uploads it immediately and adds it to the gallery below.</div>
+        ` : `<div style="font-size:.78rem; color:var(--adm-gray);">Save the product first, then reopen it to add images.</div>`}
+      </div>
       <div class="adm-form-error" id="pdError"></div>
       <div class="adm-modal-actions">
         <button class="adm-btn" id="pdCancel">Cancel</button>
         <button class="adm-btn primary" id="pdSubmit">${isEdit ? "Save Changes" : "Create"}</button>
       </div>
     `);
+
+    let currentProduct = product;
+    function renderProductImages() {
+      const grid = document.getElementById("pdImagesGrid");
+      if (!grid) return;
+      const images = currentProduct?.images || [];
+      grid.innerHTML = images.length ? images.map((url) => `
+        <div style="position:relative;">
+          <img src="${proofUrl(url)}" alt="" style="width:64px; height:64px; object-fit:cover; border-radius:8px; border:1px solid var(--adm-line);">
+          <button data-remove-img="${escapeHtml(url)}" title="Remove" style="position:absolute; top:-6px; right:-6px; width:18px; height:18px; border-radius:50%; background:var(--adm-danger); color:#fff; border:none; font-size:.7rem; cursor:pointer; line-height:1;">×</button>
+        </div>`).join("") : `<div style="font-size:.78rem; color:var(--adm-gray);">No images yet.</div>`;
+      grid.querySelectorAll("[data-remove-img]").forEach((b) => {
+        b.onclick = async () => {
+          try {
+            const data = await authedFetch(`/api/products/${currentProduct.id}/images/`, { method: "DELETE", body: JSON.stringify({ url: b.dataset.removeImg }) });
+            currentProduct = data.product;
+            renderProductImages();
+            loadProductsTab();
+          } catch (err) { toast(err.message, "error"); }
+        };
+      });
+    }
+    if (isEdit) {
+      renderProductImages();
+      document.getElementById("pdImageUpload").addEventListener("change", async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const form = new FormData();
+        form.append("file", file);
+        try {
+          const data = await authedFetch(`/api/products/${currentProduct.id}/images/`, { method: "POST", body: form });
+          currentProduct = data.product;
+          renderProductImages();
+          loadProductsTab();
+          toast("Image added.", "success");
+        } catch (err) { toast(err.message, "error"); }
+        e.target.value = "";
+      });
+    }
+
     document.getElementById("pdCancel").onclick = closeModal;
     document.getElementById("pdSubmit").onclick = async () => {
       const body = {
@@ -1648,8 +1923,10 @@
   }
 
   function wireContentToolbar() {
-    document.getElementById("saveHomepageBtn").addEventListener("click", () => saveSiteContentJson("homepage", "homepageJson"));
-    document.getElementById("saveAchievementsContentBtn").addEventListener("click", () => saveSiteContentJson("achievements", "achievementsJson"));
+    document.getElementById("saveHomepageBtn").addEventListener("click", saveHomepageContent);
+    document.getElementById("saveAchievementsContentBtn").addEventListener("click", saveAchievementsContent);
+    document.getElementById("hpAddStatBtn").addEventListener("click", () => addHomepageStatRow("", ""));
+    document.getElementById("acAddItemBtn").addEventListener("click", () => addAchievementItemRow("", ""));
     document.getElementById("addTeamMemberBtn").addEventListener("click", () => openTeamForm(null));
     document.getElementById("addProductBtn").addEventListener("click", () => openProductForm(null));
   }
@@ -1659,8 +1936,8 @@
       document.querySelector("#section-content").innerHTML = `<div class="adm-empty">You don't have permission to manage site content.</div>`;
       return;
     }
-    loadSiteContentJson("homepage", "homepageJson");
-    loadSiteContentJson("achievements", "achievementsJson");
+    loadHomepageContent();
+    loadAchievementsContent();
     loadTeamTab();
     loadProductsTab();
   }

@@ -26,6 +26,9 @@
 </div>
 
 <div class="admin-app" id="adminApp">
+  <!-- Mobile-only backdrop, shown behind the sidebar when it's open -->
+  <div class="adm-side-backdrop" id="admSideBackdrop"></div>
+
   <!-- SIDEBAR -->
   <aside class="adm-side" id="admSide">
     <a href="index.html" class="adm-brand">
@@ -108,11 +111,20 @@
   <!-- MAIN -->
   <main class="adm-main">
     <div class="adm-topbar">
-      <div>
-        <h1 id="admPageTitle">Overview</h1>
-        <div class="sub" id="admPageSub">Live snapshot of the MMC network.</div>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <button class="adm-hamburger" id="admHamburger" aria-label="Open menu" title="Menu">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+        </button>
+        <div>
+          <h1 id="admPageTitle">Overview</h1>
+          <div class="sub" id="admPageSub">Live snapshot of the MMC network.</div>
+        </div>
       </div>
       <div class="adm-topbar-actions">
+        <a href="home.html" target="_blank" rel="noopener" class="adm-btn sm" id="viewSiteBtn" title="Open the public site in a new tab">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="margin-right:2px;"><path d="M14 4h6v6M10 14L20 4M19 13v6a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h6"/></svg>
+          View Site
+        </a>
         <button class="adm-bell" id="admBell" title="Notifications">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg>
           <span class="dot"></span>
@@ -316,18 +328,54 @@
       <div class="adm-tab-panel active" id="content-homepage">
         <div class="adm-card">
           <h3>Homepage content</h3>
-          <p style="color:var(--adm-gray); font-size:.82rem; margin:-8px 0 14px;">Free-form JSON — e.g. <code>hero_title</code>, <code>hero_description</code>, <code>hero_image</code>, <code>cta</code>, <code>statistics</code>. Whatever keys you save here are what the public site should read.</p>
-          <textarea class="adm-input" id="homepageJson" rows="14" style="width:100%; font-family:monospace; font-size:.8rem;"></textarea>
+          <p style="color:var(--adm-gray); font-size:.82rem; margin:-8px 0 14px;">These fields match the hero section on the live site. Extra keys saved via the advanced JSON editor below are kept and merged in automatically.</p>
+
+          <div class="adm-form-field"><label>Badge / eyebrow text</label><input class="adm-input" id="hpBadge" placeholder="e.g. Premium Financial &amp; Innovation Ecosystem"></div>
+          <div class="adm-form-field"><label>Hero title</label><input class="adm-input" id="hpTitle" placeholder="e.g. Building Value. Creating Trust."></div>
+          <div class="adm-form-field"><label>Hero subtitle</label><textarea class="adm-input" id="hpSubtitle" rows="3" placeholder="e.g. MMC delivers innovation, security, and long-term growth…"></textarea></div>
+
+          <div class="adm-form-field"><label>Primary button — label</label><input class="adm-input" id="hpCtaPrimaryLabel" placeholder="e.g. Explore MMC"></div>
+          <div class="adm-form-field"><label>Primary button — link</label><input class="adm-input" id="hpCtaPrimaryUrl" placeholder="e.g. #about"></div>
+          <div class="adm-form-field"><label>Secondary button — label</label><input class="adm-input" id="hpCtaSecondaryLabel" placeholder="e.g. Contact Us"></div>
+          <div class="adm-form-field"><label>Secondary button — link</label><input class="adm-input" id="hpCtaSecondaryUrl" placeholder="e.g. contact.html#contact"></div>
+
+          <div class="adm-form-field">
+            <label>Stats row</label>
+            <div id="hpStatsRows"></div>
+            <button class="adm-btn sm" id="hpAddStatBtn" type="button">+ Add Stat</button>
+          </div>
+
           <div class="adm-modal-actions" style="justify-content:flex-start;"><button class="adm-btn primary" id="saveHomepageBtn">Save Homepage Content</button></div>
+
+          <details style="margin-top:22px;">
+            <summary style="cursor:pointer; color:var(--adm-gray); font-size:.78rem;">Advanced: edit raw JSON</summary>
+            <p style="color:var(--adm-gray); font-size:.78rem; margin:10px 0;">Anything beyond the fields above. Loads automatically; editing here and saving will merge with the fields above (fields above take priority for keys they cover).</p>
+            <textarea class="adm-input" id="homepageJson" rows="10" style="width:100%; font-family:monospace; font-size:.78rem;"></textarea>
+          </details>
         </div>
       </div>
 
       <div class="adm-tab-panel" id="content-achievements">
         <div class="adm-card">
           <h3>Public achievements copy</h3>
-          <p style="color:var(--adm-gray); font-size:.82rem; margin:-8px 0 14px;">Free-form JSON for the achievements shown publicly on the site.</p>
-          <textarea class="adm-input" id="achievementsJson" rows="14" style="width:100%; font-family:monospace; font-size:.8rem;"></textarea>
+          <p style="color:var(--adm-gray); font-size:.82rem; margin:-8px 0 14px;">The section eyebrow/heading and a list of achievement highlights shown publicly.</p>
+
+          <div class="adm-form-field"><label>Section eyebrow</label><input class="adm-input" id="acEyebrow" placeholder="e.g. Milestone Moments"></div>
+          <div class="adm-form-field"><label>Section heading</label><input class="adm-input" id="acHeading" placeholder="e.g. Celebrating the journey"></div>
+
+          <div class="adm-form-field">
+            <label>Highlights</label>
+            <div id="acItemsRows"></div>
+            <button class="adm-btn sm" id="acAddItemBtn" type="button">+ Add Highlight</button>
+          </div>
+
           <div class="adm-modal-actions" style="justify-content:flex-start;"><button class="adm-btn primary" id="saveAchievementsContentBtn">Save Achievements Content</button></div>
+
+          <details style="margin-top:22px;">
+            <summary style="cursor:pointer; color:var(--adm-gray); font-size:.78rem;">Advanced: edit raw JSON</summary>
+            <p style="color:var(--adm-gray); font-size:.78rem; margin:10px 0;">Anything beyond the fields above. Loads automatically; editing here and saving will merge with the fields above (fields above take priority for keys they cover).</p>
+            <textarea class="adm-input" id="achievementsJson" rows="10" style="width:100%; font-family:monospace; font-size:.78rem;"></textarea>
+          </details>
         </div>
       </div>
 

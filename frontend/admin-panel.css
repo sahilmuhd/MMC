@@ -146,12 +146,16 @@
 .adm-badge.pending, .adm-badge.submitted{background:rgba(201,154,62,.14); color:var(--adm-warning); border:1px solid rgba(201,154,62,.3);}
 .adm-badge.admin, .adm-badge.super_admin{background:rgba(212,175,55,.12); color:var(--gold); border:1px solid var(--adm-line-strong);}
 .adm-badge.member{background:rgba(139,134,126,.12); color:var(--adm-gray); border:1px solid var(--adm-line);}
+.adm-badge.rank-platinum-leader{background:rgba(184,209,219,.14); color:#B8D1DB; border:1px solid rgba(184,209,219,.3);}
+.adm-badge.rank-gold-leader{background:rgba(212,175,55,.16); color:var(--gold); border:1px solid rgba(212,175,55,.4);}
+.adm-badge.rank-silver-leader{background:rgba(192,192,192,.14); color:#C0C0C0; border:1px solid rgba(192,192,192,.3);}
+.adm-badge.rank-bronze-leader{background:rgba(205,127,50,.14); color:#CD7F32; border:1px solid rgba(205,127,50,.3);}
 
 /* ---------- Buttons (admin-scoped, small) ---------- */
 .adm-btn{
   display:inline-flex; align-items:center; gap:6px; padding:8px 16px; border-radius:100px;
   font-size:.8rem; font-weight:600; border:1px solid var(--adm-line-strong); background:transparent; color:var(--adm-text);
-  cursor:pointer; transition:border-color .2s, background .2s, color .2s;
+  cursor:pointer; transition:border-color .2s, background .2s, color .2s; text-decoration:none;
 }
 .adm-btn:hover{border-color:var(--gold); color:var(--gold);}
 .adm-btn.primary{background:linear-gradient(135deg,#F1D77A,var(--gold) 55%,var(--gold-dark)); color:var(--charcoal-deep); border-color:transparent;}
@@ -177,7 +181,22 @@
   .adm-side.open{transform:translateX(0);}
   .adm-main{padding:20px;}
   .adm-kpi-grid{grid-template-columns:1fr 1fr;}
+  .adm-hamburger{display:inline-flex;}
+  .adm-side-backdrop.open{display:block;}
+
+  /* Network view: shorter canvas (toolbar wraps to more rows on a narrow
+     screen, eating vertical space), and bigger, easier-to-tap zoom
+     controls -- 8px/12px padding is a mouse-era size, not a thumb one. */
+  .adm-network-wrap{height:60vh; min-height:380px;}
+  #networkZoomIn, #networkZoomOut, #networkFit{padding:10px 16px; font-size:.85rem;}
 }
+
+.adm-hamburger{
+  display:none; width:36px; height:36px; border-radius:8px; border:1px solid var(--adm-line);
+  background:var(--adm-panel); color:var(--adm-text-dim); align-items:center; justify-content:center; cursor:pointer; flex:none;
+}
+.adm-hamburger:hover{border-color:var(--gold); color:var(--gold);}
+.adm-side-backdrop{display:none; position:fixed; inset:0; background:rgba(10,9,8,.55); z-index:79;}
 
 /* ============================================================
    Phase 3 additions: toolbar, forms, modals, drawer, tabs, toast
@@ -191,6 +210,21 @@
 }
 .adm-input:focus, .adm-select:focus{outline:none; border-color:var(--gold);}
 .adm-input.search{min-width:220px;}
+
+/* Chrome/Edge paint autofilled and password-manager-suggested fields using
+   their own internal text color, ignoring our `color` property entirely --
+   this is invisible on a dark input unless overridden explicitly. The
+   long transition-delay is the standard trick to stop the browser's
+   autofill yellow/green background flash from showing through first. */
+.adm-input:-webkit-autofill,
+.adm-input:-webkit-autofill:hover,
+.adm-input:-webkit-autofill:focus,
+.adm-select:-webkit-autofill {
+  -webkit-text-fill-color: var(--adm-text) !important;
+  -webkit-box-shadow: 0 0 0px 1000px var(--adm-panel) inset !important;
+  box-shadow: 0 0 0px 1000px var(--adm-panel) inset !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
 
 .adm-pagination{display:flex; align-items:center; justify-content:space-between; padding:14px 20px; border-top:1px solid var(--adm-line); font-size:.78rem; color:var(--adm-gray);}
 .adm-pagination .controls{display:flex; gap:8px;}
@@ -206,12 +240,12 @@
 /* Modal (add/edit forms, confirmations) */
 .adm-overlay{position:fixed; inset:0; background:rgba(10,9,8,.6); z-index:200; display:none; align-items:center; justify-content:center; padding:20px;}
 .adm-overlay.open{display:flex;}
-.adm-modal{background:var(--adm-panel); border:1px solid var(--adm-line-strong); border-radius:var(--adm-radius); width:100%; max-width:480px; max-height:88vh; overflow-y:auto; padding:26px;}
+.adm-modal{background:var(--adm-panel); border:1px solid var(--adm-line-strong); border-radius:var(--adm-radius); width:100%; max-width:480px; max-height:88vh; overflow-y:auto; padding:26px; color:var(--adm-text);}
 .adm-modal h3{font-family:var(--font-display); margin:0 0 18px; font-size:1.15rem;}
 .adm-modal.sm{max-width:400px;}
 .adm-modal-actions{display:flex; justify-content:flex-end; gap:10px; margin-top:22px;}
 
-.adm-form-field{margin-bottom:14px;}
+.adm-form-field{margin-bottom:14px; position:relative;}
 .adm-form-field label{display:block; font-size:.76rem; color:var(--adm-gray); margin-bottom:6px; text-transform:uppercase; letter-spacing:.04em;}
 .adm-form-field .adm-input, .adm-form-field select.adm-select{width:100%;}
 .adm-form-error{color:var(--adm-danger); font-size:.8rem; margin-top:10px; display:none;}
@@ -223,7 +257,7 @@
 .adm-drawer{
   position:fixed; top:0; right:0; height:100vh; width:min(720px, 94vw); background:var(--adm-bg-soft);
   border-left:1px solid var(--adm-line-strong); z-index:195; transform:translateX(100%); transition:transform .28s ease;
-  overflow-y:auto; padding:28px 30px 60px;
+  overflow-y:auto; padding:28px 30px 60px; color:var(--adm-text);
 }
 .adm-drawer.open{transform:translateX(0);}
 .adm-drawer-close{position:absolute; top:22px; right:24px; background:none; border:none; color:var(--adm-gray); cursor:pointer; font-size:1.3rem;}
@@ -241,14 +275,14 @@
 .adm-kv-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:8px;}
 .adm-kv-grid .kv{background:var(--adm-panel-2); border:1px solid var(--adm-line); border-radius:10px; padding:12px 14px;}
 .adm-kv-grid .kv .k{font-size:.68rem; text-transform:uppercase; letter-spacing:.05em; color:var(--adm-gray);}
-.adm-kv-grid .kv .v{margin-top:3px; font-size:.92rem;}
+.adm-kv-grid .kv .v{margin-top:3px; font-size:.92rem; color:var(--adm-text);}
 
 /* Toast (replaces browser alert()) */
 .adm-toast-stack{position:fixed; bottom:22px; right:22px; z-index:300; display:flex; flex-direction:column; gap:10px;}
 .adm-toast{
   background:var(--adm-panel); border:1px solid var(--adm-line-strong); border-left:4px solid var(--gold);
   border-radius:10px; padding:13px 18px; font-size:.85rem; min-width:240px; max-width:340px; box-shadow:0 8px 24px rgba(0,0,0,.35);
-  animation:adm-toast-in .2s ease;
+  animation:adm-toast-in .2s ease; color:var(--adm-text);
 }
 .adm-toast.success{border-left-color:var(--adm-success);}
 .adm-toast.error{border-left-color:var(--adm-danger);}
@@ -261,8 +295,9 @@
 .adm-search-dropdown{
   position:absolute; top:calc(100% + 6px); left:0; width:320px; max-height:320px; overflow-y:auto;
   background:var(--adm-panel); border:1px solid var(--adm-line-strong); border-radius:var(--adm-radius-sm);
-  box-shadow:0 12px 28px rgba(0,0,0,.4); z-index:50; display:none;
+  box-shadow:0 12px 28px rgba(0,0,0,.4); z-index:250; display:none; color:var(--adm-text);
 }
+.adm-search-dropdown.full-width{width:100%;}
 .adm-search-dropdown.open{display:block;}
 .adm-search-item{padding:10px 14px; cursor:pointer; border-bottom:1px solid var(--adm-line); font-size:.82rem;}
 .adm-search-item:last-child{border-bottom:none;}
@@ -273,10 +308,10 @@
 
 .adm-network-wrap{position:relative; height:calc(100vh - 260px); min-height:520px; background:
   radial-gradient(circle at 1px 1px, rgba(212,175,55,.08) 1px, transparent 0) 0 0/22px 22px, var(--adm-bg-soft);
-  overflow:hidden; cursor:grab;
+  overflow:hidden; cursor:grab; touch-action:none;
 }
 .adm-network-wrap.grabbing{cursor:grabbing;}
-#networkSvg{display:block;}
+#networkSvg{display:block; touch-action:none;}
 .net-node{cursor:pointer;}
 .net-node .card-bg{fill:var(--adm-panel); stroke:var(--adm-line-strong); stroke-width:1.2; transition:stroke .15s, filter .15s;}
 .net-node:hover .card-bg{stroke:var(--gold);}
@@ -284,6 +319,7 @@
 .net-node.is-dim{opacity:.32;}
 .net-node .n-name{fill:var(--adm-text); font-size:12.5px; font-weight:600; font-family:var(--font-body);}
 .net-node .n-id{fill:var(--adm-gray); font-size:10px; font-family:var(--font-body);}
+.net-node .n-rank{fill:var(--gold); font-size:9.5px; font-weight:700; letter-spacing:.04em; font-family:var(--font-body);}
 .net-node .n-meta{fill:var(--adm-text-dim); font-size:10.5px; font-family:var(--font-body);}
 .net-node .n-avatar-bg{fill:var(--gold);}
 .net-node .n-avatar-txt{fill:var(--charcoal-deep); font-size:11px; font-weight:700; text-anchor:middle; dominant-baseline:central;}

@@ -2,7 +2,7 @@
 // Local dev: leave as-is (assumes backend running on localhost:4000).
 // Production: change this to your deployed backend URL,
 // e.g. "https://api.mmc-group.com"
-window.MMC_API_BASE = "http://localhost:4000";
+window.MMC_API_BASE = "http://localhost:8000";
 
 // Optional analytics. Leave blank to keep analytics fully disabled (default).
 // To enable Plausible (cookie-free, no consent banner needed in most

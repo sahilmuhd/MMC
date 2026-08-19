@@ -28,9 +28,9 @@ class MemberSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             "id", "member_id", "name", "email", "mobile", "role", "status",
-            "points_balance", "profile_photo", "parent", "sponsor_name", "team_size", "created_at",
+            "points_balance", "rank", "profile_photo", "parent", "sponsor_name", "team_size", "created_at",
         ]
-        read_only_fields = ["id", "member_id", "points_balance"]
+        read_only_fields = ["id", "member_id", "points_balance", "rank"]
 
     def get_team_size(self, obj):
         # Direct downline count only (not the whole subtree) -- cheap

@@ -77,6 +77,7 @@ urlpatterns = [
     path("team/<int:pk>/", mv.TeamMemberDetailView.as_view()),
     path("products/", mv.ProductListCreateView.as_view()),
     path("products/<int:pk>/", mv.ProductDetailView.as_view()),
+    path("products/<int:pk>/images/", mv.ProductImageUploadView.as_view()),
 
     # Notifications
     path("notifications/", mv.NotificationListView.as_view()),

@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from django.db import transaction
+from django.db import connection, transaction
 from django.db.models import F, Q, Sum
 from django.contrib.auth.models import Permission
 from django.shortcuts import get_object_or_404
@@ -233,6 +233,7 @@ def _hierarchy_node(member, depth_remaining):
         "role": member.role,
         "status": member.status,
         "points_balance": member.points_balance,
+        "rank": member.rank,
         "goals_count": member.achievements.count(),
         "income_paid": str(member.income_records.filter(status="paid").aggregate(s=Sum("amount"))["s"] or 0),
         "profile_photo": member.profile_photo.url if member.profile_photo else None,
@@ -244,6 +245,42 @@ def _hierarchy_node(member, depth_remaining):
     else:
         node["children"] = None  # not expanded -- frontend can re-request this node's id to expand
     return node
+
+
+def _batch_team_totals(ids):
+    """Total descendant count (the whole downline, not just direct
+    children) for each id in `ids`, computed in ONE query via a recursive
+    CTE rather than walking the tree in Python or querying per-node --
+    the latter would be an N+1 that gets worse the deeper the network
+    goes. Works on both SQLite and Postgres (both support WITH RECURSIVE),
+    so this is safe regardless of which DB is configured.
+
+    Returns {id: total_descendants}. Any id with no descendants (or not
+    found) is simply absent from the dict -- callers should default to 0.
+    """
+    ids = [i for i in ids if i is not None]
+    if not ids:
+        return {}
+    placeholders = ", ".join(["%s"] * len(ids))
+    sql = f"""
+        WITH RECURSIVE descendants(start_id, id) AS (
+            SELECT id, id FROM api_user WHERE id IN ({placeholders})
+            UNION ALL
+            SELECT d.start_id, u.id
+            FROM api_user u
+            JOIN descendants d ON u.parent_id = d.id
+        )
+        SELECT start_id, COUNT(*) - 1 AS total FROM descendants GROUP BY start_id
+    """
+    with connection.cursor() as cursor:
+        cursor.execute(sql, ids)
+        return {row[0]: row[1] for row in cursor.fetchall()}
+
+
+def _collect_ids(node, out):
+    out.append(node["id"])
+    for child in (node.get("children") or []):
+        _collect_ids(child, out)
 
 
 class MemberHierarchyView(APIView):
@@ -264,7 +301,25 @@ class MemberHierarchyView(APIView):
         parent_summary = None
         if member.parent:
             parent_summary = {"id": member.parent.id, "member_id": member.parent.member_id, "name": member.parent.name}
-        return Response({"ok": True, "parent": parent_summary, "tree": _hierarchy_node(member, depth)})
+
+        tree = _hierarchy_node(member, depth)
+
+        # Attach total-downline counts for exactly the nodes in THIS
+        # response (root + whatever's visible at this depth) -- one CTE
+        # query, not one per node, and never touches anything outside
+        # what's already being returned.
+        visible_ids = []
+        _collect_ids(tree, visible_ids)
+        totals = _batch_team_totals(visible_ids)
+
+        def _apply_totals(node):
+            node["team_total"] = totals.get(node["id"], 0)
+            for child in (node.get("children") or []):
+                _apply_totals(child)
+
+        _apply_totals(tree)
+
+        return Response({"ok": True, "parent": parent_summary, "tree": tree})
 
 
 class MemberAncestorsView(APIView):
@@ -999,6 +1054,50 @@ class ProductDetailView(APIView):
         product.delete()
         log_action(request, "content_updated", previous_value=before, new_value={"deleted": True})
         return Response({"ok": True})
+
+
+class ProductImageUploadView(APIView):
+    """POST /api/products/<id>/images/ (multipart 'file') -- uploads an
+    image and appends its URL to the product's `images` list.
+    DELETE with {"url": "..."} in the body removes one entry from that
+    list (the stored file itself is left in place -- this only edits
+    which URLs the product references, same as how team/homepage content
+    editing works elsewhere)."""
+
+    parser_classes = [MultiPartParser, FormParser]
+    permission_classes = [IsAuthenticated, HasPermission("edit_site_content")]
+
+    ALLOWED_CONTENT_TYPES = ("image/jpeg", "image/png", "image/webp", "image/gif")
+    MAX_SIZE_BYTES = 5 * 1024 * 1024  # 5MB
+
+    def post(self, request, pk):
+        from django.core.files.storage import default_storage
+
+        product = get_object_or_404(Product, pk=pk)
+        upload = request.FILES.get("file")
+        if not upload:
+            return Response({"ok": False, "error": "No file provided."}, status=400)
+        if upload.content_type not in self.ALLOWED_CONTENT_TYPES:
+            return Response({"ok": False, "error": f"Unsupported file type: {upload.content_type}"}, status=400)
+        if upload.size > self.MAX_SIZE_BYTES:
+            return Response({"ok": False, "error": "File exceeds the 5MB limit."}, status=400)
+
+        path = default_storage.save(f"product_images/{product.id}/{upload.name}", upload)
+        url = default_storage.url(path)
+        product.images = [*(product.images or []), url]
+        product.save(update_fields=["images"])
+        log_action(request, "content_updated", target=product, new_value={"image_added": url})
+        return Response({"ok": True, "product": ProductSerializer(product).data})
+
+    def delete(self, request, pk):
+        product = get_object_or_404(Product, pk=pk)
+        url = request.data.get("url")
+        if not url:
+            return Response({"ok": False, "error": "url is required."}, status=400)
+        product.images = [u for u in (product.images or []) if u != url]
+        product.save(update_fields=["images"])
+        log_action(request, "content_updated", target=product, new_value={"image_removed": url})
+        return Response({"ok": True, "product": ProductSerializer(product).data})
 
 
 # ---------------------------------------------------------------------------

@@ -90,6 +90,27 @@ class User(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return f"{self.member_id or self.id} <{self.email}>"
 
+    # Rank/tier is DERIVED from points_balance, not a stored field --
+    # this keeps it always-accurate (no separate sync step that can drift)
+    # and means changing the thresholds takes effect instantly for
+    # everyone, with no migration. Ordered highest-first so the first
+    # match wins.
+    RANK_THRESHOLDS = (
+        (15000, "Platinum Leader"),
+        (5000, "Gold Leader"),
+        (2000, "Silver Leader"),
+        (500, "Bronze Leader"),
+        (0, "Member"),
+    )
+
+    @property
+    def rank(self):
+        balance = self.points_balance or 0
+        for threshold, name in self.RANK_THRESHOLDS:
+            if balance >= threshold:
+                return name
+        return self.RANK_THRESHOLDS[-1][1]
+
     def public_dict(self):
         """Shape returned to clients -- never includes the password hash or
         reset-token fields."""
@@ -102,6 +123,7 @@ class User(AbstractBaseUser, PermissionsMixin):
             "role": self.role,
             "status": self.status,
             "points_balance": self.points_balance,
+            "rank": self.rank,
             "profile_photo": self.profile_photo.url if self.profile_photo else None,
             "parent_id": self.parent_id,
         }

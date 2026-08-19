@@ -594,4 +594,77 @@
       });
     });
   }
+
+  /* ======================================================
+     CMS CONTENT LOADER — pulls hero copy (home.html) and the
+     achievements section heading (index.html) from the admin
+     panel's Site Content editor, if the backend is reachable.
+     Every element is only touched when the CMS actually has a
+     value for it, and any fetch/parse failure is swallowed --
+     the hardcoded HTML already in the page is the fallback, so
+     this never blanks out real content on a slow/offline backend.
+     ====================================================== */
+  function escapeCmsText(str) {
+    return String(str).replace(/[&<>"']/g, (c) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+    }[c]));
+  }
+
+  async function loadCmsContent() {
+    const page = document.body.dataset.page;
+    if (!window.MMC_API_BASE || (page !== "home.html" && page !== "index.html")) return;
+
+    const setText = (id, value) => {
+      const el = document.getElementById(id);
+      if (el && value) el.textContent = value;
+    };
+
+    if (page === "home.html") {
+      try {
+        const res = await fetch(`${window.MMC_API_BASE}/api/content/homepage/`);
+        if (!res.ok) return;
+        const json = await res.json();
+        const data = (json.content && json.content.data) || {};
+
+        setText("cmsHeroBadge", data.badge);
+        if (data.hero_title) {
+          document.getElementById("cmsHeroTitle").innerHTML = escapeCmsText(data.hero_title).replace(/\n/g, "<br>");
+        }
+        setText("cmsHeroSub", data.hero_subtitle);
+
+        const primaryBtn = document.getElementById("cmsCtaPrimary");
+        if (primaryBtn) {
+          if (data.cta_primary_label) primaryBtn.textContent = data.cta_primary_label;
+          if (data.cta_primary_url) primaryBtn.setAttribute("href", data.cta_primary_url);
+        }
+        const secondaryBtn = document.getElementById("cmsCtaSecondary");
+        if (secondaryBtn) {
+          if (data.cta_secondary_label) secondaryBtn.textContent = data.cta_secondary_label;
+          if (data.cta_secondary_url) secondaryBtn.setAttribute("href", data.cta_secondary_url);
+        }
+
+        if (Array.isArray(data.stats) && data.stats.length) {
+          const wrap = document.getElementById("cmsHeroStats");
+          if (wrap) {
+            wrap.innerHTML = data.stats
+              .map((s) => `<div><span class="mono">${escapeCmsText(s.value || "")}</span><small>${escapeCmsText(s.label || "")}</small></div>`)
+              .join("");
+          }
+        }
+      } catch { /* backend unreachable -- keep the hardcoded hero */ }
+    }
+
+    if (page === "index.html") {
+      try {
+        const res = await fetch(`${window.MMC_API_BASE}/api/content/achievements/`);
+        if (!res.ok) return;
+        const json = await res.json();
+        const data = (json.content && json.content.data) || {};
+        setText("cmsAchEyebrow", data.eyebrow);
+        setText("cmsAchHeading", data.heading);
+      } catch { /* backend unreachable -- keep the hardcoded heading */ }
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", loadCmsContent);
 })();
