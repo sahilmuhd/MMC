@@ -281,7 +281,7 @@
     if (!members.length) { el.innerHTML = `<div class="adm-empty">No members yet.</div>`; return; }
     const rows = members.map((m) => `
       <tr>
-        <td><div class="adm-row-member"><div class="ph">${escapeHtml(initials(m.name))}</div>${escapeHtml(m.name)}</div></td>
+        <td><div class="adm-row-member">${memberAvatarHtml(m)}${escapeHtml(m.name)}</div></td>
         <td>${escapeHtml(m.member_id)}</td>
         <td>${escapeHtml(m.email)}</td>
         <td><span class="adm-badge ${escapeHtml(m.status)}">${escapeHtml(m.status)}</span></td>
@@ -383,6 +383,12 @@
     const slug = `rank-${rank.toLowerCase().replace(/\s+/g, "-")}`;
     return `<span class="adm-badge ${escapeHtml(slug)}">${escapeHtml(rank)}</span>`;
   }
+  function memberAvatarHtml(m) {
+    if (m.profile_photo) {
+      return `<img src="${proofUrl(m.profile_photo)}" alt="" class="ph" style="object-fit:cover;">`;
+    }
+    return `<div class="ph">${escapeHtml(initials(m.name))}</div>`;
+  }
 
   // ---------------------------------------------------------------------
   // Shared member typeahead -- turns a text input + hidden id field into
@@ -472,7 +478,7 @@
     else {
       const rows = data.results.map((m) => `
         <tr>
-          <td><div class="adm-row-member"><div class="ph">${escapeHtml(initials(m.name))}</div>${escapeHtml(m.name)}</div></td>
+          <td><div class="adm-row-member">${memberAvatarHtml(m)}${escapeHtml(m.name)}</div></td>
           <td>${escapeHtml(m.member_id)}</td>
           <td>${escapeHtml(m.email)}</td>
           <td>${escapeHtml(m.mobile || "—")}</td>
@@ -691,7 +697,23 @@
   }
 
   function renderOverviewTab(member) {
+    const canUploadPhoto = member.id === currentUser.id || hasPerm("upload_photos") || currentUser.role === "super_admin";
+    const canDeletePhoto = member.id === currentUser.id || hasPerm("delete_photos") || currentUser.role === "super_admin";
+    const photoUrl = member.profile_photo ? proofUrl(member.profile_photo) : null;
+
     document.getElementById("tab-overview").innerHTML = `
+      <div style="display:flex; align-items:center; gap:16px; margin-bottom:20px;">
+        ${photoUrl
+          ? `<img src="${photoUrl}" alt="" style="width:72px; height:72px; border-radius:50%; object-fit:cover; border:1px solid var(--adm-line-strong);">`
+          : `<div style="width:72px; height:72px; border-radius:50%; background:var(--gold); color:var(--charcoal-deep); display:grid; place-items:center; font-weight:700; font-size:1.3rem;">${escapeHtml(initials(member.name))}</div>`}
+        <div>
+          ${canUploadPhoto ? `<input class="adm-input" id="memberPhotoUpload" type="file" accept="image/jpeg,image/png,image/webp" style="font-size:.76rem;">` : ""}
+          <div style="display:flex; gap:10px; align-items:center; margin-top:6px;">
+            ${canUploadPhoto ? `<span style="font-size:.72rem; color:var(--adm-gray);">Selecting a file uploads it immediately.</span>` : ""}
+            ${photoUrl && canDeletePhoto ? `<button class="adm-btn sm danger" id="memberPhotoRemove" type="button">Remove Photo</button>` : ""}
+          </div>
+        </div>
+      </div>
       <div class="adm-kv-grid">
         <div class="kv"><div class="k">Member ID</div><div class="v">${escapeHtml(member.member_id)}</div></div>
         <div class="kv"><div class="k">Status</div><div class="v">${statusBadge(member.status)}</div></div>
@@ -714,6 +736,35 @@
     if (editBtn) editBtn.onclick = () => openMemberForm(member.id);
     const reassignBtn = document.getElementById("drawerReassignBtn");
     if (reassignBtn) reassignBtn.onclick = () => openReassignSponsorModal(member);
+
+    const photoInput = document.getElementById("memberPhotoUpload");
+    if (photoInput) {
+      photoInput.addEventListener("change", async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const form = new FormData();
+        form.append("photo", file);
+        try {
+          await authedFetch(`/api/members/${member.id}/photo/`, { method: "POST", body: form });
+          toast("Photo updated.", "success");
+          openMemberDrawer(member.id); // refresh drawer with the new photo
+          loadMembers();
+        } catch (err) { toast(err.message, "error"); }
+      });
+    }
+    const removeBtn = document.getElementById("memberPhotoRemove");
+    if (removeBtn) {
+      removeBtn.onclick = async () => {
+        const ok = await confirmDialog("Remove this photo?", "This deletes the uploaded photo. It can be re-uploaded at any time.", "Remove", true);
+        if (!ok) return;
+        try {
+          await authedFetch(`/api/members/${member.id}/photo/`, { method: "DELETE" });
+          toast("Photo removed.", "success");
+          openMemberDrawer(member.id);
+          loadMembers();
+        } catch (err) { toast(err.message, "error"); }
+      };
+    }
   }
 
   function openReassignSponsorModal(member) {
@@ -949,6 +1000,12 @@
     svg.selectAll("*").remove();
     netState.svgSel = svg;
 
+    // One shared circular clip-path, reused by every node's photo <image> --
+    // each node group has its own transform, so this single definition
+    // clips correctly for all of them without needing a unique id per node.
+    svg.append("defs").append("clipPath").attr("id", "netAvatarClip")
+      .append("circle").attr("cx", 26).attr("cy", 26).attr("r", 15);
+
     const g = svg.append("g").attr("class", "viewport");
 
     const zoom = d3.zoom().scaleExtent([0.25, 2]).on("zoom", (event) => {
@@ -982,6 +1039,13 @@
 
     nodeSel.append("circle").attr("class", "n-avatar-bg").attr("cx", 26).attr("cy", 26).attr("r", 15);
     nodeSel.append("text").attr("class", "n-avatar-txt").attr("x", 26).attr("y", 27).text((d) => initials(d.data.name));
+    nodeSel.filter((d) => d.data.profile_photo).each(function (d) {
+      d3.select(this).append("image")
+        .attr("href", proofUrl(d.data.profile_photo))
+        .attr("x", 11).attr("y", 11).attr("width", 30).attr("height", 30)
+        .attr("clip-path", "url(#netAvatarClip)")
+        .attr("preserveAspectRatio", "xMidYMid slice");
+    });
 
     nodeSel.append("circle")
       .attr("class", "n-status-dot")
